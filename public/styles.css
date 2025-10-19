@@ -1,0 +1,4 @@
+body { background: #f7fafc; }
+.card { border-radius: .6rem; }
+#dropZone { cursor: pointer; transition: border-color .2s; }
+#dropZone.border-primary { border-color: #0d6efd !important; box-shadow: 0 0 10px rgba(13,110,253,0.08); }
