@@ -226,9 +226,9 @@ async function cloudConvertFallbackConvert(filePath, outputFormat, options = {})
 
 // ---------------- Conversion helpers ----------------
 
-// convertImageBufferWithFallback: tries local sharp, or CloudConvert (HEIC forced)
+// // convertImageBufferWithFallback: tries local sharp, or CloudConvert (HEIC forced)
 async function convertImageBufferWithFallback(buffer, outFormat, quality, maxDim, originalName = 'input') {
-  // Force CloudConvert for HEIC by name if available
+  // Force CloudConvert for HEIC by name if available (keeps existing behavior)
   if (isHeicByName(originalName, null) && CLOUDCONVERT_API_KEY) {
     console.log('Forcing CloudConvert for HEIC', originalName);
     const tmpIn = path.join(UPLOAD_DIR, `tmp_in_${Date.now()}${path.extname(originalName) || '.heic'}`);
@@ -273,6 +273,13 @@ async function convertImageBufferWithFallback(buffer, outFormat, quality, maxDim
         const outBuf = await img.avif({ quality: q }).toBuffer();
         return { buffer: outBuf, mime: 'image/avif' };
       }
+      // NEW: support HEIF/HEIC output when sharp/libvips supports it
+      if (fmt === 'heif' || fmt === 'heic') {
+        // heif options: quality mapping; may support lossless/effort, use default
+        const outBuf = await img.flatten({ background: { r:255,g:255,b:255 } }).heif({ quality: q }).toBuffer();
+        // heif mime may be image/heif or image/heic; use image/heif
+        return { buffer: outBuf, mime: 'image/heif' };
+      }
       if (fmt === 'tiff') {
         const outBuf = await img.tiff({ quality: q }).toBuffer();
         return { buffer: outBuf, mime: 'image/tiff' };
@@ -288,7 +295,7 @@ async function convertImageBufferWithFallback(buffer, outFormat, quality, maxDim
     }
   }
 
-  // CloudConvert fallback
+  // CloudConvert fallback (unchanged)
   if (!CLOUDCONVERT_API_KEY) throw new Error('No local sharp and CLOUDCONVERT_API_KEY not configured');
   const tmpIn = path.join(UPLOAD_DIR, `tmp_${Date.now()}_${Math.random().toString(36).slice(2,8)}${path.extname(originalName) || '.bin'}`);
   fs.writeFileSync(tmpIn, buffer);
